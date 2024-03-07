@@ -9,11 +9,19 @@ from quaternion_ds.util.load_tools import load_clfd_dataset
 from quaternion_ds.util.process_tools import pre_process
 from quaternion_ds.quat_ds_coupled import quat_ds as quat_ds_class
 from quaternion_ds.util.plot_tools import plot_quat
-from quaternion_ds.util.plot_tools import plot_gmm_prob
+from quaternion_ds.util.plot_tools import plot_gmm_prob, plot_gmm_prob_overlay
+
+from quaternion_ds.util.plot_tools import plot_pose
+from quaternion_ds.util.plot_tools import plot_train_test_4d, plot_gmm_on_traj
+
+
 
 from damm_lpvds.main import damm_lpvds as damm_lpvds_class
 from damm_lpvds.util.load_tools import processDataStructure
 from damm_lpvds.util.plot_tools import plot_reference_trajectories_DS
+
+
+plot_gmm_prob_overlay()
 
 
 
@@ -23,7 +31,7 @@ quaternion data using pre_process; convert position into proper scale
 """
 
 
-p_in, q_in, index_list                  = load_clfd_dataset(task_id=0, num_traj=2, sub_sample=1)
+p_in, q_in, index_list                  = load_clfd_dataset(task_id=0, num_traj=9, sub_sample=2)
 q_in, q_out, q_init, q_att, index_list  = pre_process(q_in, index_list, opt= "slerp")
 
 p_in /= 100
@@ -31,11 +39,13 @@ p_in /= 100
 
 quat_ds = quat_ds_class(p_in, q_in, q_out, q_att, index_list, K_init=4)
 
-
 """
 Run savgol filter to append velocity; covert into
 correct format; run pre-processing and initiating the damm_lpvds class
 """
+quat_ds.begin()
+plot_gmm_on_traj(p_in, q_in, quat_ds.gmm)
+
 
 
 p_out = savgol_filter(p_in, window_length=81, polyorder=2, deriv=1, delta=0.01, axis=0, mode="nearest")
@@ -71,9 +81,9 @@ damm_lpvds.begin()
 Start simulation
 """
 
-dt = 0.05
-t_max = 10E4
-p_i = p_in[0, :].reshape(-1, 1)
+dt = 0.03
+t_max = 10E3
+p_i = np.mean(x0_all, axis=1, keepdims=True).reshape(-1, 1)
 q_i = q_init
 
 p_list = [p_i[:,0]]
@@ -82,9 +92,21 @@ w_test = []
 
 i = 0
 tol = 10E-3
-while np.linalg.norm((q_list[-1] * quat_ds.q_att.inv()).as_rotvec()) >= tol:
+
+while np.linalg.norm(p_list[-1]-att[:, 0]) >= tol:
+# while i <= 200:
+
     if i > int(t_max):
         print("exceed the max iteration")
+
+    if i >= 85 and i < 105:
+        # noise = - np.array([4E-3, 4E-3, 4E-3]).reshape(-1, 1)
+        noise =  np.array([0, +8E-3, 0]).reshape(-1, 1)
+        p_i += noise
+
+
+    # noise = np.random.normal(0, 10E-4, size=(3,1))
+    # p_i += noise
 
     p_i = damm_lpvds.step(p_i, dt) 
     q_i, w_i = quat_ds.step(p_i.T, q_i, dt)
@@ -95,14 +117,18 @@ while np.linalg.norm((q_list[-1] * quat_ds.q_att.inv()).as_rotvec()) >= tol:
 
     p_list.append(p_i[:,0])
 
+    i+=1
 
+
+# np.save("w.npy", np.array(w_test))
 
 
 """
 Plot the simulation Results
 """
-
 plot_gmm_prob(np.array(w_test), title="GMM Posterior Probability of Reproduced Data")
+
+
 
 plot_quat(q_list)
 
@@ -111,6 +137,20 @@ p_arr = np.array(p_list)
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(projection='3d')
 line = ax.plot(p_arr[:, 0], p_arr[:, 1], p_arr[:, 2], 'o')
+
+from damm_lpvds.ds_opt.util.data_tools.plot_tools import plot_p_arr
+plot_p_arr(p_arr)
+
+
+
+"""
+Plot the overlaying results of pose between demo and reproduction
+"""
+
+plot_pose(p_in, p_arr, q_out=q_out, label=quat_ds.gmm.assignment_arr)
+
+plot_train_test_4d(q_in, index_list, q_list)
+# plot_train_test_4d(q_in, index_list, q_list)
 
 
 plt.show()
