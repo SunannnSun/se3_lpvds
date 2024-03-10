@@ -41,7 +41,7 @@ q_in, q_out, q_init, q_att, index_list  = pre_process(q_in, index_list, opt= "sl
 
 
 # quat_ds = quat_ds_class(p_in, q_in, q_out, q_att, index_list, K_init=4)
-quat_ds = quat_ds_class(q_in, q_out, q_att, index_list, K_init=4)
+quat_ds = quat_ds_class(q_in, q_out, q_init, q_att, index_list, K_init=4)
 
 """
 Run savgol filter to append velocity; covert into
