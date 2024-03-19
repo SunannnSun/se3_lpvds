@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Import Packages
-from damm_lpvds.src.util import load_tools, plot_tools
-from damm_lpvds.src.damm_lpvds import damm_lpvds as damm_lpvds_class
+from src.damm_lpvds.src.util import load_tools, plot_tools
+from src.damm_lpvds.src.damm_lpvds import damm_lpvds as damm_lpvds_class
 
 
 # choose input option

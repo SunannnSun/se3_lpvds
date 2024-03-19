@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 
 # Import Packages
-from quaternion_ds.src.quat_ds import quat_ds as quat_ds_class
-from quaternion_ds.src.util import plot_tools, traj_generator, quat_tools, load_tools, process_tools
+from src.quaternion_ds.src.quat_ds import quat_ds as quat_ds_class
+from src.quaternion_ds.src.util import plot_tools, traj_generator, quat_tools, load_tools, process_tools
 
 
 """####### LOAD AND PROCESS DATA ########"""

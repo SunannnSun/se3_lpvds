@@ -5,16 +5,16 @@ from scipy.spatial.transform import Rotation as R
 
 from scipy.signal import savgol_filter
 
-from quaternion_ds.src.util.process_tools import pre_process
-from quaternion_ds.src.quat_ds import quat_ds as quat_ds_class
+from src.quaternion_ds.src.util.process_tools import pre_process
+from src.quaternion_ds.src.quat_ds import quat_ds as quat_ds_class
 
-from quaternion_ds.src.util.plot_tools import plot_gmm_prob, overlay_train_test_4d
+from src.quaternion_ds.src.util.plot_tools import plot_gmm_prob, overlay_train_test_4d
 
 # from quaternion_ds.src.util.plot_tools import plot_pose
 # from quaternion_ds.src.util.plot_tools import overlay_train_test_4d, plot_gmm_on_traj, overlay_train_test_4d_iros
 
-from damm_lpvds.src.damm_lpvds import damm_lpvds as damm_lpvds_class
-from damm_lpvds.src.util.load_tools import processDataStructure
+from src.damm_lpvds.src.damm_lpvds import damm_lpvds as damm_lpvds_class
+from src.damm_lpvds.src.util.load_tools import processDataStructure
 # from damm_lpvds.src.util.plot_tools import plot_reference_trajectories_DS, plot_train_test_4d_demo_pos
 
 
