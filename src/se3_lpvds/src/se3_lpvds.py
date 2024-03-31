@@ -66,10 +66,12 @@ class se3_lpvds:
         
 
     def _optimize(self):
-        # self.A = optimize_tools.optimize_quat_system(self.q_new, self.q_out, self.q_att, self.postProb)
 
-        self.A = optimize_tools.optimize_quat_system(self.p_in, self.q_in, 
-                                                     self.p_out, self.q_out, self.p_att, self.q_att, self.postProb)
+        self.A_pos = optimize_tools.optimize_pos(self.p_in, self.p_out, self.p_att, self.postProb)
+
+
+        self.A_ori = optimize_tools.optimize_ori(self.q_in, self.q_out, self.q_att, self.postProb)
+
 
 
     def begin(self):
@@ -87,14 +89,19 @@ class se3_lpvds:
             """
 
             K = self.K
-            A = self.A
+
+            A_pos = self.A_pos
+            A_ori = self.A_ori
+
+            p_att = self.p_att
             q_att = self.q_att
+
             gmm   = self.gmm
 
             q_in_att  = riem_log(q_att, q_in)
             q_out_att = np.zeros((4, 1))
 
-            w_k = gmm.postLogProb(q_in)
+            w_k = gmm.postLogProb(p_in, q_in)
             for k in range(K):
                 q_out_att += w_k[k, 0] * A[k] @ q_in_att.reshape(-1, 1)
 
@@ -104,7 +111,7 @@ class se3_lpvds:
 
             w_out      = compute_ang_vel(q_in, q_out)
 
-            w_out /= 20
+            # w_out /= 20
 
             q_next     = q_in * R.from_rotvec(w_out * dt)
 
@@ -113,7 +120,7 @@ class se3_lpvds:
 
 
 
-    def sim(self, q_init, dt=0.1, if_perturb=False):
+    def sim(self, p_init, q_init, dt=0.1):
         """
         Forward simulation given an initial point
 
@@ -129,13 +136,19 @@ class se3_lpvds:
          
         """    
 
-        q_init = self._rectify(q_init)
+        # q_init = self._rectify(q_init)
         
         K = self.K
-        A = self.A
+
+        A_pos = self.A_pos
+        A_ori = self.A_ori
+
+        p_att = self.p_att.reshape(1, -1)
         q_att = self.q_att
+
         gmm   = self.gmm
-        
+
+        p_test = [p_init.reshape(1, -1)]
         q_test = [q_init]
         w_test = []
 
@@ -143,20 +156,23 @@ class se3_lpvds:
         while np.linalg.norm((q_test[-1] * self.q_att.inv()).as_rotvec()) >= self.tol:
             if i > self.max_iter:
                 print("Simulation failed: exceed max iteration")
-                sys.exit(0)
+                break
+            
+            p_in  = p_test[i]
+            q_in  = q_test[i]
 
-            q_in      = q_test[i]
-
-            if if_perturb and i==50:
-                q_in =  R.from_rotvec([0.2, 0.1, 0.1]) * q_in
-
-
-            q_in_att  = riem_log(q_att, q_in)
+            p_diff  = p_in - p_att
+            q_diff  = riem_log(q_att, q_in)
+            
+            p_out     = np.zeros((3, 1))
             q_out_att = np.zeros((4, 1))
 
-            w_k = gmm.postLogProb(q_in)
+            w_k = gmm.postLogProb(p_in, q_in)
             for k in range(K):
-                q_out_att += w_k[k, 0] * A[k] @ q_in_att.reshape(-1, 1)
+                p_out     += w_k[k, 0] * A_pos[k] @ p_diff.T
+                q_out_att += w_k[k, 0] * A_ori[k] @ q_diff.T
+
+            p_next = p_in + p_out.T * dt
 
             q_out_body = parallel_transport(q_att, q_in, q_out_att.T)
             q_out_q    = riem_exp(q_in, q_out_body) 
@@ -165,12 +181,14 @@ class se3_lpvds:
             w_out      = compute_ang_vel(q_in, q_out, dt)
             q_next     = q_in * R.from_rotvec(w_out * dt)   #body frame
 
+
+            p_test.append(p_next)        
             q_test.append(q_next)        
             w_test.append(w_k[:, 0])
 
             i += 1
 
-        return q_test, np.array(w_test)
+        return p_test, q_test, np.array(w_test)
     
 
     def _rectify(self, q_init):
