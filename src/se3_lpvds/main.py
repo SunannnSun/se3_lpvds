@@ -17,7 +17,7 @@ usually no velocity is provided, other than the time stamp, hence computing velo
 """
 
 
-p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=1, num_traj=2, sub_sample=2)
+p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=1, num_traj=9, sub_sample=1)
 
 p_in, q_in, t_in    = process_tools.pre_process(p_raw, q_raw, t_raw, opt= "savgol")
 

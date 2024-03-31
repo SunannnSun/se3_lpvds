@@ -15,19 +15,19 @@ def optimize_quat_system(p_in, q_in, p_out, q_out, p_att, q_att, postProb):
     """
 
     p_diff = p_in - np.tile(p_att.reshape(1, -1), (p_in.shape[0], 1))
-    pq_in    = np.hstack((p_diff, riem_log(q_att, q_in)))
+    # pq_in    = np.hstack((p_diff, riem_log(q_att, q_in)))
     # pq_in    = riem_log(q_att, q_in)
-    # pq_in    = p_diff
+    pq_in    = p_diff
 
     q_out_body = riem_log(q_in, q_out)            
     q_out_att  = parallel_transport(q_in, q_att, q_out_body)
 
-    pq_out = np.hstack((p_out, q_out_att))
+    # pq_out = np.hstack((p_out, q_out_att))
     # pq_out =  q_out_att
-    # pq_out =  p_out
+    pq_out =  p_out
 
     K, _ = postProb.shape
-    N = 7
+    N = 3
 
 
     max_norm = 0.5
