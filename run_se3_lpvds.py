@@ -88,7 +88,7 @@ while np.linalg.norm(p_list[-1]-att[:, 0]) >= tol:
 #     # p_i += noise
 
     p_i = damm_lpvds.step(p_i, dt) 
-    q_i, w_i = quat_ds.step(q_i, dt/2)
+    q_i, w_i = quat_ds.step(q_i, dt)
     
     q_test.append(q_i)
 
@@ -118,6 +118,10 @@ plt.show()
 
 
 
+
+
+if __name__=="__main__":
+    pass
 
 
 
