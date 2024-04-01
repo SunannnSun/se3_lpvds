@@ -12,7 +12,6 @@ def optimize_pos(p_in, p_out, p_att, postProb):
     K, _ = postProb.shape
     N = 3
 
-    max_norm = 0.5
     A_vars = []
     constraints = []
     for k in range(K):
@@ -20,7 +19,6 @@ def optimize_pos(p_in, p_out, p_att, postProb):
 
         constraints += [A_vars[k].T + A_vars[k] << np.zeros((N, N))]
 
-        # constraints += [cp.norm(A_vars[k], 'fro') <= max_norm]
 
     for k in range(K):
         p_pred_k = A_vars[k] @ p_in.T
@@ -35,14 +33,12 @@ def optimize_pos(p_in, p_out, p_att, postProb):
 
 
     problem = cp.Problem(cp.Minimize(objective), constraints)
-    problem.solve(solver=cp.MOSEK, verbose=True)
+    problem.solve(solver=cp.MOSEK, verbose=False)
 
 
     A_res = np.zeros((K, N, N))
     for k in range(K):
         A_res[k, :, :] = A_vars[k].value
-        print(A_vars[k].value)
-        print(np.linalg.norm(A_vars[k].value, 'fro'))
 
     return A_res
 
@@ -50,13 +46,6 @@ def optimize_pos(p_in, p_out, p_att, postProb):
 
 
 def optimize_ori(q_in, q_out, q_att, postProb):
-    """
-    :param q_in:  list of Rotation objects representing orientation, should be length N
-    :param q_out:  list of Rotation objects representing angular velocity, should be length N-1
-    :param q_att:    single Rotation object represent the target attractor
-    :param postProb: posterior probability of each observation, shape (K, N), where K is number of components and N is the number of observations
-    """
-
 
     q_in_att    = riem_log(q_att, q_in)
 
@@ -68,15 +57,10 @@ def optimize_ori(q_in, q_out, q_att, postProb):
     K, _ = postProb.shape
     N = 4
 
-    max_norm = 0.5
     A_vars = []
     constraints = []
     for k in range(K):
         A_vars.append(cp.Variable((N, N), symmetric=False))
-
-        constraints += [A_vars[k].T + A_vars[k] << np.zeros((N, N))]
-
-        # constraints += [cp.norm(A_vars[k], 'fro') <= max_norm]
 
 
     for k in range(K):
@@ -92,13 +76,11 @@ def optimize_ori(q_in, q_out, q_att, postProb):
 
 
     problem = cp.Problem(cp.Minimize(objective), constraints)
-    problem.solve(solver=cp.MOSEK, verbose=True)
+    problem.solve(solver=cp.MOSEK, verbose=False)
 
 
     A_res = np.zeros((K, N, N))
     for k in range(K):
         A_res[k, :, :] = A_vars[k].value
-        print(A_vars[k].value)
-        print(np.linalg.norm(A_vars[k].value, 'fro'))
 
     return A_res

@@ -6,7 +6,6 @@ from scipy.spatial.transform import Rotation as R
 from scipy.signal import savgol_filter
 
 from . import plot_tools, optimize_tools, quat_tools
-from .gmm import gmm as gmm_class
 from .quat_tools import *
 from .plot_tools import *
 
@@ -14,16 +13,12 @@ from .plot_tools import *
 
 
 def _compute_ang_vel(q_i, q_ip1, dt=0.01):
-    """
-    compute the angular velocity given two orientations and time difference
-    """
+    """  Compute angular velocity """
 
     dq = q_i.inv() * q_ip1    # from q_i to q_ip1 in body frame
-
     # dq = q_kp1 * q_k.inv()    # from q_i to q_ip1 in fixed frame
 
     dq = dq.as_rotvec() 
-
     w  = dq / dt
 
     return w
@@ -51,7 +46,8 @@ def _shift_pos(p_list):
 
 def _shift_ori(q_list):
     """
-    Note: 
+    Note:
+    ---- 
         Scipy methods, e.g. "R.mean()", "R.inv()" and "R.__mul__()" will OFTEN flip the SIGNS of the computed quaternion
         
         Do NOT output "q_att_mean" as the ATTRACTOR which could be SIGN-inconsistent with the rest of quaternions
@@ -79,6 +75,7 @@ def _smooth_ori(q_list, q_att, opt):
     Smoothen the orientation trajectory using Savgol filter or SLERP interpolation
 
     Note:
+    ----
         The value of k are parameters that can be tuned in both methods
     """
 
@@ -123,9 +120,7 @@ def _smooth_ori(q_list, q_att, opt):
 
 
 def _filter(p_list, q_list, t_list):
-    """
-    Goal is to extract a smooth velocity profile (non-zero except at the attractor)
-    """
+    """   Extract a smooth velocity profile (non-zero except near the attractor)  """
 
     min_thold = 0.1 
     pct_thold = 0.8
@@ -176,7 +171,6 @@ def pre_process(p_raw, q_raw, t_raw, opt="savgol"):
 
 
 
-
 def compute_output(p_list, q_list, t_list):
 
     L = len(q_list)
@@ -200,23 +194,15 @@ def compute_output(p_list, q_list, t_list):
             dt     = t_list[l][i+1] - t_list[l][i]
 
             v      = (p_ip1 - p_i) / dt
-            # w      = _compute_ang_vel(q_i, q_ip1, dt)
 
             p_out_l.append(v)
             q_out_l.append(q_ip1)
-            # q_out_l.append(w)
-
 
         p_out_l.append(v)
         q_out_l.append(q_ip1)
-        # q_out_l.append(w)        
-
 
         p_out.append(np.array(p_out_l))
         q_out.append(q_out_l)
-
-        # q_out.append(np.array(q_out_l))
-
 
     return p_out, q_out
 
@@ -226,7 +212,7 @@ def compute_output(p_list, q_list, t_list):
 def extract_state(p_list, q_list):
     L = len(q_list)
 
-    p_init = []
+    p_init = []  # list of L initial points given L trajectories
     q_init = []
     
     for l in range(L):
@@ -240,7 +226,9 @@ def extract_state(p_list, q_list):
 
 
 
+
 def rollout_list(p_in, q_in, p_out, q_out):
+    """ Roll out the nested list into a single list of M entries """
 
     L = len(q_in)
 
@@ -256,8 +244,6 @@ def rollout_list(p_in, q_in, p_out, q_out):
             p_out_rollout = np.vstack((p_out_rollout, p_out[l]))
             q_out_rollout += q_out[l]
             
-            # q_out_rollout = np.vstack((q_out_rollout, q_out[l]))
-
 
     return p_in_rollout, q_in_rollout, p_out_rollout, q_out_rollout
 

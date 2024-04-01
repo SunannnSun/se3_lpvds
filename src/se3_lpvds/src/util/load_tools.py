@@ -29,14 +29,15 @@ def load_clfd_dataset(task_id=1, num_traj=1, sub_sample=3):
     Load data from clfd dataset
 
     Return:
+    -------
         p_raw:  a LIST of L trajectories, each containing M observations of N dimension, or [M, N] ARRAY;
                 M can vary and need not be same between trajectories
 
         q_raw:  a LIST of L trajectories, each containting a LIST of M (Scipy) Rotation objects;
                 need to consistent with M from position
-
         
     Note:
+    ----
         NO time stamp available in this dataset!
 
         [num_demos=9, trajectory_length=1000, data_dimension=7] 
@@ -44,7 +45,7 @@ def load_clfd_dataset(task_id=1, num_traj=1, sub_sample=3):
     """
 
     L = num_traj
-    T = 10.0            # pick a time duration to hand engineer an equal-length time stamp
+    T = 10.0            # pick a time duration 
 
     file_path           = os.path.dirname(os.path.realpath(__file__))  
     dir_path            = os.path.dirname(file_path)
@@ -71,8 +72,7 @@ def load_clfd_dataset(task_id=1, num_traj=1, sub_sample=3):
 
         p_raw.append(data[l, :, :3])
         q_raw.append([R.from_quat(q) for q in data_ori.tolist()])
-        t_raw.append(np.linspace(0, T, M, endpoint=False))
+        t_raw.append(np.linspace(0, T, M, endpoint=False))   # hand engineer an equal-length time stamp
 
 
     return p_raw, q_raw, t_raw
-
