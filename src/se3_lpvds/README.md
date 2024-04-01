@@ -1,1 +1,0 @@
-If not using the built-in ``load_tools`` and ``process_tools``, one can directly import the ``se3_class`` and make sure the inputs match the types specified in ``se3_class.py``

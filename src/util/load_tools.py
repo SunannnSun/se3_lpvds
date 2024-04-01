@@ -1,93 +1,78 @@
-import os, sys
+import os
 import numpy as np
-from scipy.io import loadmat
-from . import process_bag
+from scipy.spatial.transform import Rotation as R
 
 
 
-def load_data(demo=[]):
-
-    if len(demo) == 0:
-
-        damm_list = ["shelving", "pouring", "orientation"]
-        
-        message = """Available Models: \n"""
-        for i in range(len(damm_list)):
-            message += "{:2}) {: <18} ".format(i+1, damm_list[i])
-            if (i+1) % 6 ==0:
-                message += "\n"
-        message += '\nEnter the corresponding option number [type 0 to exit]: '
-        
-        data_opt = int(input(message))
-
-        folder_name = str(damm_list[data_opt-1])
-
-    else:
-        folder_name = demo
-
-
-    input_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..", "..", "dataset", folder_name, "all.mat")
-    input_data, q_in, index_list  = process_bag.process_bag_file(input_path)
-
-    return input_data, q_in, index_list 
-
-
-
-
-
-
-def processDataStructure(data):
+def _get_sequence(seq_file):
     """
-    Arguments:
-        data: include position and velocity
-              should be dimension of N by 1
-              with each entry containing a trajectory of shape L by 2M
+    Returns a list of containing each line of `seq_file`
+    as an element
 
+    Args:
+        seq_file (str): File with name of demonstration files
+                        in each line
 
-    Parameters:
-        N: the number of trajectory
-        M: the number of dimension
-    
+    Returns:
+        [str]: List of demonstration files
     """
-    N = int(len(data))
-    M = int(len(data[0][0]) / 2)
-    att_ = data[0][0][0:M, -1].reshape(M, 1)
-    for n in np.arange(1, N):
-        att = data[n][0][0:M, -1].reshape(M, 1)
-        att_ = np.concatenate((att_, att), axis=1)
+    seq = None
+    with open(seq_file) as x:
+        seq = [line.strip() for line in x]
+    return seq
 
-    att = np.mean(att_, axis=1, keepdims=True)
-    shifts = att_ - np.repeat(att, N, axis=1)
-    Data = np.array([])
-    x0_all = np.array([])
-    Data_sh = np.array([])
-    traj_length = []
-    for l in np.arange(N):
-        # Gather Data
-        data_ = data[l][0].copy()
-        traj_length.append(data_.shape[1])
-        shifts_ = np.repeat(shifts[:, l].reshape(len(shifts), 1), len(data_[0]), axis=1)
-        data_[0:M, :] = data_[0:M, :] - shifts_
-        data_[M:, -1] = 0
-        data_[M:, -2] = (data_[M:, -1] + np.zeros(M)) / 2
-        data_[M:, -3] = (data_[M:, -3] + data_[M:, -2])/2
-        # All starting position for reproduction accuracy comparison
-        if l == 0:
-            Data = data_.copy()
-            x0_all = np.copy(data_[0:M, 0].reshape(M, 1))
-        else:
-            Data = np.concatenate((Data, data_), axis=1)
-            x0_all = np.concatenate((x0_all, data_[0:M, 0].reshape(M, 1)), axis=1)
-        # Shift data to origin for Sina's approach + SEDS
-        data_[0:M, :] = data_[0:M, :] - np.repeat(att, len(data_[0]), axis = 1)
-        data_[M:, -1] = 0
-        if l == 0:
-            Data_sh = data_
-        else:
-            Data_sh = np.concatenate((Data_sh, data_), axis=1)
-        data[l][0] = data_
 
-    data_12 = data[0][0][:, 0:M]
-    dt = np.abs((data_12[0][0] - data_12[0][1]) / data_12[M][0])
+
+
+def load_clfd_dataset(task_id=1, num_traj=1, sub_sample=3):
+    """
+    Load data from clfd dataset
+
+    Return:
+    -------
+        p_raw:  a LIST of L trajectories, each containing M observations of N dimension, or [M, N] ARRAY;
+                M can vary and need not be same between trajectories
+
+        q_raw:  a LIST of L trajectories, each containting a LIST of M (Scipy) Rotation objects;
+                need to consistent with M from position
+        
+    Note:
+    ----
+        NO time stamp available in this dataset!
+
+        [num_demos=9, trajectory_length=1000, data_dimension=7] 
+        A data point consists of 7 elements: px,py,pz,qw,qx,qy,qz (3D position followed by quaternions in the scalar first format).
+    """
+
+    L = num_traj
+    T = 10.0            # pick a time duration 
+
+    file_path           = os.path.dirname(os.path.realpath(__file__))  
+    dir_path            = os.path.dirname(file_path)
+    data_path           = os.path.dirname(dir_path)
+
+    seq_file    = os.path.join(data_path, "dataset", "pos_ori", "robottasks_pos_ori_sequence_4.txt")
+    filenames   = _get_sequence(seq_file)
+    datafile    = os.path.join(data_path, "dataset", "pos_ori", filenames[task_id])
     
-    return Data, Data_sh, att, x0_all, dt, data, np.array(traj_length)
+    data        = np.load(datafile)[:, ::sub_sample, :]
+
+    p_raw = []
+    q_raw = []
+    t_raw = []
+
+    for l in range(L):
+        M = data[l, :, :].shape[0]
+
+        data_ori = np.zeros((M, 4))         # convert to scalar last format, consistent with Scipy convention
+        w        = data[l, :, 3 ].copy()  
+        xyz      = data[l, :, 4:].copy()
+        data_ori[:, -1]  = w
+        data_ori[:, 0:3] = xyz
+
+        p_raw.append(data[l, :, :3])
+        q_raw.append([R.from_quat(q) for q in data_ori.tolist()])
+        t_raw.append(np.linspace(0, T, M, endpoint=False))   # hand engineer an equal-length time stamp
+
+
+    return p_raw, q_raw, t_raw
