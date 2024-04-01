@@ -116,7 +116,7 @@ class se3_class:
 
             i += 1
 
-        return p_test, q_test, np.array(gamma_test)
+        return np.vstack(p_test), q_test, np.array(gamma_test)
         
 
 

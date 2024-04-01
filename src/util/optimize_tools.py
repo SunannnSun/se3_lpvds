@@ -7,7 +7,7 @@ from .plot_tools import *
 
 def optimize_pos(p_in, p_out, p_att, postProb):
 
-    p_in -= np.tile(p_att.reshape(1, -1), (p_in.shape[0], 1))
+    p_diff = p_in - np.tile(p_att.reshape(1, -1), (p_in.shape[0], 1))
 
     K, _ = postProb.shape
     N = 3
@@ -21,7 +21,7 @@ def optimize_pos(p_in, p_out, p_att, postProb):
 
 
     for k in range(K):
-        p_pred_k = A_vars[k] @ p_in.T
+        p_pred_k = A_vars[k] @ p_diff.T
         if k == 0:
             p_pred  = cp.multiply(np.tile(postProb[k, :], (N, 1)), p_pred_k)
         else:

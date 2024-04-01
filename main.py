@@ -6,10 +6,8 @@ from src.se3_class import se3_class
 from src.util import plot_tools, load_tools, process_tools
 
 
-
-
 # Load data
-p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=1, num_traj=9, sub_sample=1)
+p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=1, num_traj=5, sub_sample=1)
 
 
 # Process data
@@ -27,13 +25,8 @@ p_test, q_test, gamma_test = se3_obj.sim(p_init[0], q_init[0], dt=0.01)
 
 
 # Plot results
-plot_tools.plot_gamma_over_time(gamma_test)
-plot_tools.plot_quat(q_test)
-
-p_arr = np.vstack(p_test)
-fig = plt.figure(figsize=(10, 8))
-ax = fig.add_subplot(projection='3d')
-ax.plot(p_arr[:, 0], p_arr[:, 1], p_arr[:, 2], 'o')
-
+plot_tools.plot_gmm(p_in, se3_obj.gmm)
+plot_tools.plot_result(p_in, p_test, q_test)
+plot_tools.plot_gamma(gamma_test)
 
 plt.show()
