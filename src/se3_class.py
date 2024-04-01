@@ -121,7 +121,7 @@ class se3_class:
 
 
     def _step(self, p_in, q_in, dt):
-        """ Integrate forward by one step """
+        """ Integrate forward by one time step """
 
         # read parameters
         A_pos = self.A_pos
@@ -150,7 +150,7 @@ class se3_class:
         q_out_body = parallel_transport(q_att, q_in, q_out_att.T)
         q_out_q    = riem_exp(q_in, q_out_body) 
         q_out      = R.from_quat(q_out_q.reshape(4,))
-        w_out      = compute_ang_vel(q_in, q_out, dt)   #angular velocity
+        w_out      = compute_ang_vel(q_in, q_out, dt=0.01)   #angular velocity
         q_next     = q_in * R.from_rotvec(w_out * dt)   #compose in body frame
 
 
