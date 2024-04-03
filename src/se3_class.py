@@ -76,15 +76,15 @@ class se3_class:
     def _cluster(self):
         gmm = gmm_class(self.p_in, self.q_in, self.q_att, self.K_init)  
 
-        self.postProb = gmm.fit()
+        self.gamma    = gmm.fit()  # K by M
         self.K        = gmm.K
         self.gmm      = gmm
         
 
 
     def _optimize(self):
-        self.A_pos = optimize_tools.optimize_pos(self.p_in, self.p_out, self.p_att, self.postProb)
-        self.A_ori = optimize_tools.optimize_ori(self.q_in, self.q_out, self.q_att, self.postProb)
+        self.A_pos = optimize_tools.optimize_pos(self.p_in, self.p_out, self.p_att, self.gamma)
+        self.A_ori = optimize_tools.optimize_ori(self.q_in, self.q_out, self.q_att, self.gamma)
 
 
 

@@ -6,11 +6,11 @@ from src.se3_class import se3_class
 from src.util import plot_tools, load_tools, process_tools
 
 
-# Load data
-p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=1, num_traj=5, sub_sample=1)
+# Load data (Optional)
+p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=1, num_traj=9, sub_sample=1)
 
 
-# Process data
+# Process data (Optional)
 p_in, q_in, t_in             = process_tools.pre_process(p_raw, q_raw, t_raw, opt= "savgol")
 p_out, q_out                 = process_tools.compute_output(p_in, q_in, t_in)
 p_init, q_init, p_att, q_att = process_tools.extract_state(p_in, q_in)
@@ -24,7 +24,7 @@ se3_obj.begin()
 p_test, q_test, gamma_test = se3_obj.sim(p_init[0], q_init[0], dt=0.01)
 
 
-# Plot results
+# Plot results (Optional)
 plot_tools.plot_gmm(p_in, se3_obj.gmm)
 plot_tools.plot_result(p_in, p_test, q_test)
 plot_tools.plot_gamma(gamma_test)

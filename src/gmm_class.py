@@ -50,7 +50,7 @@ class gmm_class:
         assignment_arr = gmm.predict(self.pq_in)
 
         self._rearrange_array(assignment_arr)
-        self._return_normal_class()
+        self._extract_gaussian()
 
         return self.logProb(self.p_in, self.q_in)
 
@@ -75,7 +75,7 @@ class gmm_class:
 
 
 
-    def _return_normal_class(self):
+    def _extract_gaussian(self):
         """
         Extract Gaussian components from assignment labels and data
 
@@ -127,8 +127,7 @@ class gmm_class:
 
     def logProb(self, p_in, q_in):
         """ Compute log probability"""
-
-        logProb = np.zeros((self.K, self.M))
+        logProb = np.zeros((self.K, p_in.shape[0]))
 
         for k in range(self.K):
             prior_k, mu_k, _, normal_k = tuple(self.gaussian_list[k].values())
@@ -137,7 +136,6 @@ class gmm_class:
             pq_k = np.hstack((p_in, q_k))
 
             logProb[k, :] = np.log(prior_k) + normal_k.logpdf(pq_k)
-        
 
         maxPostLogProb = np.max(logProb, axis=0, keepdims=True)
         expProb = np.exp(logProb - np.tile(maxPostLogProb, (self.K, 1)))
