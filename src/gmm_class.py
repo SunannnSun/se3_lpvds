@@ -142,3 +142,46 @@ class gmm_class:
         postProb = expProb / np.sum(expProb, axis = 0, keepdims=True)
 
         return postProb
+    
+
+
+
+
+    def _dual_gmm(self):
+        """ dual GMM to cover the entire quaternion space """
+
+        K_dual = self.K * 2
+        # Prior_dual   = [0] * K_dual
+        dual_gaussian_list = [] 
+
+        for k in range(int(K_dual/2)):      
+            # Prior_dual[k]  = self.Prior[k] / 2
+            Prior, Mu, Sigma, _ = tuple(self.gaussian_list[k].values())
+
+            dual_gaussian_list.append({
+                    "prior" : Prior/2,
+                    "mu"    : Mu,
+                    "sigma" : Sigma,
+                    "rv"    : multivariate_normal(np.hstack((Mu[0], np.zeros(4))), Sigma, allow_singular=True)
+                }
+            )
+
+        for k in np.arange(int(K_dual/2), K_dual):          
+            k_prev = k - int(K_dual/2)
+            # Prior_dual[k]  = Prior_dual[k_prev]
+            Prior, Mu, Sigma, _ = tuple(self.gaussian_list[k_prev].values())
+            Mu     = (Mu[0], R.from_quat(-Mu[1].as_quat()))
+
+            dual_gaussian_list.append({
+                    "prior" : Prior/2,
+                    "mu"    : Mu,
+                    "sigma" : Sigma,
+                    "rv"    : multivariate_normal(np.hstack((Mu[0], np.zeros(4))), Sigma, allow_singular=True)
+                }
+            )
+        
+        dual_gmm = gmm_class(self.p_in, self.q_in, self.q_att, 1)
+        dual_gmm.K = K_dual
+        dual_gmm.gaussian_list = dual_gaussian_list
+
+        return dual_gmm

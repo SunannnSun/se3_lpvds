@@ -79,7 +79,8 @@ class se3_class:
         self.gamma    = gmm.fit()  # K by M
         self.K        = gmm.K
         self.gmm      = gmm
-        
+        self.dual_gmm = gmm._dual_gmm()
+
 
 
     def _optimize(self):
@@ -91,7 +92,6 @@ class se3_class:
     def begin(self):
         self._cluster()
         self._optimize()
-
 
 
     def sim(self, p_init, q_init, dt):
@@ -122,6 +122,8 @@ class se3_class:
 
     def _step(self, p_in, q_in, dt):
         """ Integrate forward by one time step """
+        q_in = self._rectify(p_in, q_in)
+
 
         # read parameters
         A_pos = self.A_pos
@@ -155,3 +157,20 @@ class se3_class:
 
 
         return p_next, q_next, gamma
+    
+
+
+    def _rectify(self, p_in, q_in):
+        
+        """
+        Rectify q_init if it lies on the unmodeled half of the quaternion space
+        """
+        dual_gmm    = self.dual_gmm
+        gamma_dual  = dual_gmm.logProb(p_in, q_in).T
+
+        index_of_largest = np.argmax(gamma_dual)
+
+        if index_of_largest <= (dual_gmm.K/2 - 1):
+            return q_in
+        else:
+            return R.from_quat(-q_in.as_quat())

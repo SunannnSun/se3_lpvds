@@ -21,7 +21,10 @@ p_in, q_in, p_out, q_out     = process_tools.rollout_list(p_in, q_in, p_out, q_o
 se3_obj = se3_class(p_in, q_in, p_out, q_out, p_att, q_att, K_init=4)
 se3_obj.begin()
 
-p_test, q_test, gamma_test = se3_obj.sim(p_init[0], q_init[0], dt=0.01)
+
+q_init = R.from_quat(-q_init[0].as_quat())
+
+p_test, q_test, gamma_test = se3_obj.sim(p_init[0], q_init, dt=0.01)
 
 
 # Plot results (Optional)
