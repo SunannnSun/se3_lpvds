@@ -55,7 +55,9 @@ def plot_result(p_train, p_test, q_test):
 
 
     colors = ("#FF6666", "#005533", "#1199EE")  # Colorblind-safe RGB
-    scale = 5
+    x_min, x_max = ax.get_xlim()
+    scale = (x_max - x_min)/4
+    
     for i in np.linspace(0, len(q_test), num=10, endpoint=False, dtype=int):
 
         r = q_test[i]
@@ -104,7 +106,8 @@ def plot_gmm(p_in, gmm):
 
     colors = ("#FF6666", "#005533", "#1199EE")  # Colorblind-safe RGB
 
-    scale = 5
+    x_min, x_max = ax.get_xlim()
+    scale = (x_max - x_min)/4
     for k in range(K):
         label_k =np.where(label == k)[0]
 

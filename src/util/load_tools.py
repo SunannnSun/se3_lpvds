@@ -1,6 +1,49 @@
 import os
 import numpy as np
+from scipy.io import loadmat
 from scipy.spatial.transform import Rotation as R
+
+
+
+
+def _process_bag(path):
+    """ Process .mat files that is converted from .bag files """
+
+    data_ = loadmat(r"{}".format(path))
+    data_ = data_['data_ee_pose']
+    L = data_.shape[1]
+
+    p_raw     = []
+    q_raw     = []
+    t_raw     = []
+
+    sample_step = 5
+    vel_thresh  = 1e-3 
+    
+    for l in range(L):
+        data_l = data_[0, l]['pose'][0,0]
+        pos_traj  = data_l[:3, ::sample_step]
+        quat_traj = data_l[3:7, ::sample_step]
+        time_traj = data_l[-1, ::sample_step].reshape(1,-1)
+
+        raw_diff_pos = np.diff(pos_traj)
+        vel_mag = np.linalg.norm(raw_diff_pos, axis=0).flatten()
+        first_non_zero_index = np.argmax(vel_mag > vel_thresh)
+        last_non_zero_index = len(vel_mag) - 1 - np.argmax(vel_mag[::-1] > vel_thresh)
+
+        if first_non_zero_index >= last_non_zero_index:
+            raise Exception("Sorry, vel are all zero")
+
+        pos_traj  = pos_traj[:, first_non_zero_index:last_non_zero_index]
+        quat_traj = quat_traj[:, first_non_zero_index:last_non_zero_index]
+        time_traj = time_traj[:, first_non_zero_index:last_non_zero_index]
+        
+        p_raw.append(pos_traj.T)
+        q_raw.append([R.from_quat(quat_traj[:, i]) for i in range(quat_traj.shape[1]) ])
+        t_raw.append(time_traj.reshape(time_traj.shape[1]))
+
+    return p_raw, q_raw, t_raw
+
 
 
 
@@ -76,3 +119,17 @@ def load_clfd_dataset(task_id=1, num_traj=1, sub_sample=3):
 
 
     return p_raw, q_raw, t_raw
+
+
+
+
+def load_demo_dataset():
+    """
+    Load demo data recorded from demonstration
+
+
+    """
+
+    input_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..", "..", "dataset", "demo", "all.mat")
+    
+    return _process_bag(input_path)

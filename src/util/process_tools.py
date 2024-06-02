@@ -183,7 +183,8 @@ def compute_output(p_list, q_list, t_list):
 
         p_out_l  = []
         q_out_l  = []
-
+        
+        
         for i in range(M-1):
             p_i    = p_list[l][i, :]
             p_ip1  = p_list[l][i+1, :]
