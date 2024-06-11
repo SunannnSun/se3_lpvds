@@ -122,6 +122,9 @@ class gmm_class:
 
         self.gaussian_list = gaussian_list
 
+        self.Prior  = Prior
+        self.Mu     = Mu
+        self.Sigma  = Sigma
 
 
 

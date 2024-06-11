@@ -7,8 +7,8 @@ from src.util import plot_tools, load_tools, process_tools
 
 
 # Load data (Optional)
-# p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=1, num_traj=9, sub_sample=1)
-p_raw, q_raw, t_raw = load_tools.load_demo_dataset()
+p_raw, q_raw, t_raw = load_tools.load_clfd_dataset(task_id=2, num_traj=9, sub_sample=1)
+# p_raw, q_raw, t_raw = load_tools.load_demo_dataset()
 
 # Process data (Optional)
 p_in, q_in, t_in             = process_tools.pre_process(p_raw, q_raw, t_raw, opt= "savgol")
@@ -18,7 +18,7 @@ p_in, q_in, p_out, q_out     = process_tools.rollout_list(p_in, q_in, p_out, q_o
 
 
 # Run se3_lpvds
-se3_obj = se3_class(p_in, q_in, p_out, q_out, p_att, q_att, K_init=4)
+se3_obj = se3_class(p_in, q_in, p_out, q_out, p_att, q_att, K_init=3)
 se3_obj.begin()
 
 q_init = R.from_quat(-q_init[0].as_quat())

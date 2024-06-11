@@ -7,6 +7,10 @@ from .util.quat_tools import *
 from .gmm_class import gmm_class
 
 
+def write_json(data, path):
+    with open(path, "w") as json_file:
+        json.dump(data, json_file, indent=4)
+
 
 def compute_ang_vel(q_k, q_kp1, dt=0.01):
     """ Compute angular velocity """
@@ -92,6 +96,7 @@ class se3_class:
     def begin(self):
         self._cluster()
         self._optimize()
+        self._logOut()
 
 
     def sim(self, p_init, q_init, dt):
@@ -174,3 +179,40 @@ class se3_class:
             return q_in
         else:
             return R.from_quat(-q_in.as_quat())
+        
+    
+
+
+    def _logOut(self):
+
+        Prior = self.gmm.Prior
+        Mu    = self.gmm.Mu
+        Mu_rollout = [np.hstack((p_mean, q_mean.as_quat())) for (p_mean, q_mean) in Mu]
+        Sigma = self.gmm.Sigma
+
+        Mu_arr      = np.zeros((self.K, 7)) 
+        Sigma_arr   = np.zeros((self.K, 7, 7), dtype=np.float32)
+
+        for k in range(self.K):
+            Mu_arr[k, :] = Mu_rollout[k]
+            Sigma_arr[k, :, :] = Sigma[k]
+
+        json_output = {
+            "name": "SE3-LPVDS result",
+
+            "K": self.K,
+            "M": 7,
+            "Prior": Prior,
+            "Mu": Mu_arr.ravel().tolist(),
+            "Sigma": Sigma_arr.ravel().tolist(),
+
+            'A_pos': self.A_pos.ravel().tolist(),
+            'A_ori': self.A_ori.ravel().tolist(),
+            'att_pos': self.p_att.ravel().tolist(),
+            'att_ori': self.q_att.as_quat().ravel().tolist(),
+            'q_init': self.q_in[0].as_quat().ravel().tolist(),
+            "gripper_open": 0
+        }
+
+        js_path =  os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'output.json')
+        write_json(json_output, js_path)
