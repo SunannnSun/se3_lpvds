@@ -20,6 +20,33 @@ mpl.rc('font', **font)
 
 
 
+def plot_vel(v_test, w_test):
+    v_test = np.vstack(v_test)
+    M, N = v_test.shape
+
+    fig, axs = plt.subplots(3, 1, figsize=(12, 8))
+
+    colors = ["r", "g", "b", "k", 'c', 'm', 'y', 'crimson', 'lime'] + [
+    "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)]) for i in range(200)]
+
+    for k in range(3):
+        axs[k].scatter(np.arange(M), v_test[:, k], s=5, color=colors[k])
+        # axs[k].set_ylim([0, 1])
+
+
+    w_test = np.vstack(w_test)
+    M, N = w_test.shape
+    fig, axs = plt.subplots(3, 1, figsize=(12, 8))
+
+    colors = ["r", "g", "b", "k", 'c', 'm', 'y', 'crimson', 'lime'] + [
+    "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)]) for i in range(200)]
+
+    for k in range(3):
+        axs[k].scatter(np.arange(M), w_test[:, k], s=5, color=colors[k])
+        # axs[k].set_ylim([0, 1])
+
+
+
 def plot_gamma(gamma_arr, **argv):
 
     M, K = gamma_arr.shape
@@ -58,7 +85,7 @@ def plot_result(p_train, p_test, q_test):
     x_min, x_max = ax.get_xlim()
     scale = (x_max - x_min)/4
     
-    for i in np.linspace(0, len(q_test), num=10, endpoint=False, dtype=int):
+    for i in np.linspace(0, len(q_test), num=30, endpoint=False, dtype=int):
 
         r = q_test[i]
         loc = p_test[i, :]

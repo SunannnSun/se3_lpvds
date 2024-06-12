@@ -68,7 +68,7 @@ class se3_class:
 
         # simulation parameters
         self.tol = 10E-3
-        self.max_iter = 10000
+        self.max_iter = 5000
 
 
         # define output path
@@ -99,13 +99,17 @@ class se3_class:
         self._logOut()
 
 
-    def sim(self, p_init, q_init, dt):
+    def sim(self, p_init, q_init, dt, step_size):
         p_test = [p_init.reshape(1, -1)]
         q_test = [q_init]
         gamma_test = []
 
+        v_test = []
+        w_test = []
+
+
         i = 0
-        while np.linalg.norm((q_test[-1] * self.q_att.inv()).as_rotvec()) >= self.tol:
+        while np.linalg.norm((q_test[-1] * self.q_att.inv()).as_rotvec()) >= self.tol or np.linalg.norm((p_test[-1] - self.p_att)) >= self.tol:
             if i > self.max_iter:
                 print("Exceed max iteration")
                 break
@@ -113,19 +117,22 @@ class se3_class:
             p_in  = p_test[i]
             q_in  = q_test[i]
 
-            p_next, q_next, gamma = self._step(p_in, q_in, dt)
+            p_next, q_next, gamma, v, w = self._step(p_in, q_in, dt, step_size)
 
             p_test.append(p_next)        
             q_test.append(q_next)        
             gamma_test.append(gamma[:, 0])
 
+            v_test.append(v)
+            w_test.append(w)
+
             i += 1
 
-        return np.vstack(p_test), q_test, np.array(gamma_test)
+        return np.vstack(p_test), q_test, np.array(gamma_test), v_test, w_test
         
 
 
-    def _step(self, p_in, q_in, dt):
+    def _step(self, p_in, q_in, dt, step_size):
         """ Integrate forward by one time step """
         q_in = self._rectify(p_in, q_in)
 
@@ -152,16 +159,16 @@ class se3_class:
             p_out     += gamma[k, 0] * A_pos[k] @ p_diff.T
             q_out_att += gamma[k, 0] * A_ori[k] @ q_diff.T
 
-        p_next = p_in + p_out.T * dt
+        p_next = p_in + p_out.T * step_size
 
         q_out_body = parallel_transport(q_att, q_in, q_out_att.T)
         q_out_q    = riem_exp(q_in, q_out_body) 
         q_out      = R.from_quat(q_out_q.reshape(4,))
-        w_out      = compute_ang_vel(q_in, q_out, dt=0.01)   #angular velocity
-        q_next     = q_in * R.from_rotvec(w_out * dt)   #compose in body frame
+        w_out      = compute_ang_vel(q_in, q_out, dt)   #angular velocity
+        q_next     = q_in * R.from_rotvec(w_out * step_size)   #compose in body frame
 
 
-        return p_next, q_next, gamma
+        return p_next, q_next, gamma, p_out, w_out
     
 
 
