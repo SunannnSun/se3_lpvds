@@ -98,7 +98,8 @@ class se3_class:
 
 
     def _logOut(self):
-        self.pos_ds.log
+        # self.pos_ds.log
+        pass
 
 
 
@@ -148,43 +149,18 @@ class se3_class:
 
     def _step(self, p_in, q_in, dt, step_size):
         """ Integrate forward by one time step """
-        # q_in = self._rectify(p_in, q_in)
 
-
-        # read parameters
-        A_pos = self.A_pos
-        A_ori = self.A_ori
-
-        p_att = self.p_att.reshape(1, -1)
-        q_att = self.q_att
-
-
-        # compute output
-        p_diff  = p_in - p_att
-        q_diff  = quat_tools.riem_log(q_att, q_in)
-        
-        p_out     = np.zeros((3, 1))
-        q_out_att = np.zeros((4, 1))
+        p_out     = np.zeros((3, 1)) # missing
 
         gamma_pos = self.pos_ds.damm.logProb(p_in)   # gamma value 
-        gamma_ori = self.ori_ds.gmm.logProb(q_in)
-
-        for k in range(self.pos_ds.K):
-            p_out     += gamma_pos[k, 0] * A_pos[k] @ p_diff.T
-
-        for k in range(self.ori_ds.K):
-            q_out_att += gamma_ori[k, 0] * A_ori[k] @ q_diff.T
-
-        p_next = p_in + p_out.T * step_size
-
-        q_out_body = quat_tools.parallel_transport(q_att, q_in, q_out_att.T)
-        q_out_q    = quat_tools.riem_exp(q_in, q_out_body) 
-        q_out      = R.from_quat(q_out_q.reshape(4,))
-        w_out      = compute_ang_vel(q_in, q_out, dt)   #angular velocity
-        q_next     = q_in * R.from_rotvec(w_out * step_size)   #compose in body frame
 
 
-        return p_next, q_next, gamma_pos, gamma_ori, p_out, w_out
+
+        p_next                   = self.pos_ds._step(p_in, dt)
+        q_next, gamma_ori, omega = self.ori_ds._step(q_in, dt, step_size)
+
+
+        return p_next, q_next, gamma_pos, gamma_ori, p_out, omega
     
 
 
