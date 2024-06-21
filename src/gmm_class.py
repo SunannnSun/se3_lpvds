@@ -6,7 +6,7 @@ from sklearn.mixture import BayesianGaussianMixture
 
 from .util.quat_tools import *
 from .util.plot_tools import *
-
+from .util.inflate_tools import *
 
 
 class gmm_class:
@@ -109,7 +109,12 @@ class gmm_class:
 
             Prior[k]  = len(q_k)/self.M
             Mu[k]     = (p_k_mean, q_k_mean)
-            Sigma[k]  = pq_diff.T @ pq_diff / (len(q_k)-1)  + 10E-6 * np.eye(self.N)
+
+            Sigma_k  = pq_diff.T @ pq_diff / (len(q_k)-1)  + 10E-6 * np.eye(self.N)
+            Sigma[k] = adjust_cov(Sigma_k)
+            # Sigma[k] = Sigma_k
+
+            # Sigma[k]  = pq_diff.T @ pq_diff / (len(q_k)-1)  + 10E-6 * np.eye(self.N)
 
             gaussian_list.append(
                 {   

@@ -20,7 +20,7 @@ p_in, q_in, p_out, q_out     = process_tools.rollout_list(p_in, q_in, p_out, q_o
 
 
 # Run se3_lpvds
-se3_obj = se3_class(p_in, q_in, p_out, q_out, p_att, q_att, K_init=3)
+se3_obj = se3_class(p_in, q_in, p_out, q_out, p_att, q_att, K_init=4)
 se3_obj.begin()
 print("hello")
 
@@ -28,6 +28,7 @@ q_init = R.from_quat(-q_init[0].as_quat())
 # dt = np.average([t_in[0][i+1] - t_in[0][i] for i in range(len(t_in[0])-1)])
 
 p_test, q_test, gamma_test, v_test, w_test = se3_obj.sim(p_init[0], q_init, dt, step_size=0.01)
+# p_test, q_test, gamma_test, v_test, w_test = se3_obj.sim(p_init[0]+[0.05, 0.05, 0.05], q_init, dt, step_size=0.01)
 
 
 # Plot results (Optional)
