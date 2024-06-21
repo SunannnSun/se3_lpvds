@@ -139,7 +139,7 @@ def load_demo_dataset():
 
 def load_npy():
 
-    traj = np.load("traj1.npy")
+    traj = np.load("dataset/UMI/traj1.npy")
 
     q_raw = [R.from_matrix(traj[i, :3, :3]) for i in range(traj.shape[0])]
 
