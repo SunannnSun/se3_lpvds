@@ -79,7 +79,7 @@ class se3_class:
 
         # init pos and ori lpvds class
         self.pos_ds = lpvds_class(p_in, p_out, p_att)
-        self.ori_ds = quat_class(q_in, q_out, q_att, K_init=4)
+        self.ori_ds = quat_class(q_in, q_out, q_att, K_init=self.K_init)
 
 
 

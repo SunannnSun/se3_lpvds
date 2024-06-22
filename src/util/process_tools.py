@@ -5,9 +5,8 @@ from scipy.spatial.transform import Slerp
 from scipy.spatial.transform import Rotation as R
 from scipy.signal import savgol_filter
 
-from . import plot_tools, optimize_tools, quat_tools
+from . import quat_tools
 from .quat_tools import *
-from .plot_tools import *
 
 
 
@@ -70,6 +69,32 @@ def _shift_ori(q_list):
 
 
 
+def _smooth_pos(p_in:list):
+    """
+    Smoothen the orientation trajectory using Savgol filter or SLERP interpolation
+
+    Note:
+    ----
+        The value of k are parameters that can be tuned in both methods
+    """
+    k = 80 
+    L = len(p_in)
+
+    p_smooth = []
+    for l in range(L):
+            p_l = p_in[l]
+
+            p_l_smooth = savgol_filter(p_l, window_length=k, polyorder=2, axis=0, mode="nearest")
+
+            p_smooth.append(p_l_smooth)
+    
+
+    return p_smooth
+
+
+
+
+
 def _smooth_ori(q_list, q_att, opt):
     """
     Smoothen the orientation trajectory using Savgol filter or SLERP interpolation
@@ -86,7 +111,7 @@ def _smooth_ori(q_list, q_att, opt):
         q_l    = q_list[l]
 
         if opt == "savgol":
-            k = 80
+            k =  80
 
             q_l_att  = quat_tools.riem_log(q_att, q_l)
 
@@ -122,7 +147,7 @@ def _smooth_ori(q_list, q_att, opt):
 def _filter(p_list, q_list, t_list):
     """   Extract a smooth velocity profile (non-zero except near the attractor)  """
 
-    min_thold = 0.1 
+    min_thold = 0.05
     pct_thold = 0.8
 
     L = len(q_list)
@@ -163,6 +188,7 @@ def pre_process(p_raw, q_raw, t_raw, opt="savgol"):
     p_in, p_att             = _shift_pos(p_raw)
     q_in, q_att             = _shift_ori(q_raw)
 
+    p_in                    = _smooth_pos(p_in)
     q_in                    = _smooth_ori(q_in, q_att, opt)
 
     p_in, q_in, t_in        = _filter(p_in, q_in, t_raw)
@@ -247,6 +273,5 @@ def rollout_list(p_in, q_in, p_out, q_out):
             
 
     return p_in_rollout, q_in_rollout, p_out_rollout, q_out_rollout
-
 
 
