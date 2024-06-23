@@ -26,20 +26,20 @@ se3_obj.begin()
 q_init = R.from_quat(q_init[0].as_quat())
 dt = np.average([t_in[0][i+1] - t_in[0][i] for i in range(len(t_in[0])-1)])
 
-p_test, q_test, gamma_pos, gamma_ori, v_test, w_test = se3_obj.sim(p_init[0]+[-0.05, 0, 0], q_init, dt, step_size=dt)
+p_test, q_test, gamma_pos, gamma_ori, v_test, w_test = se3_obj.sim(p_init[0]+[-0.01, 0, 0], q_init*R.from_euler('xyz', [0.5, 1.2, 2.3]), dt, step_size=dt)
 
 
-# # Plot results (Optional)
-plot_tools.plot_p_out(p_in, p_out, se3_obj.pos_ds)
-plot_tools.plot_q_out(q_in, q_out, se3_obj.ori_ds)
+# # Plot results
+# plot_tools.plot_p_out(p_in, p_out, se3_obj.pos_ds)
+# plot_tools.plot_q_out(q_in, q_out, se3_obj.ori_ds)
 
 # plot_tools.plot_gmm_pos(p_in, se3_obj.pos_ds.damm)
 # plot_tools.plot_gmm_ori(p_in, se3_obj.ori_ds.gmm)
 
-# plot_tools.plot_result(p_in, p_test, q_test)
+plot_tools.plot_result(p_in, p_test, q_test)
 
-# plot_tools.plot_gamma(gamma_pos, title="pos")
-# plot_tools.plot_gamma(gamma_ori, title="ori")
+plot_tools.plot_gamma(gamma_pos, title="pos")
+plot_tools.plot_gamma(gamma_ori, title="ori")
 
 
 plt.show()

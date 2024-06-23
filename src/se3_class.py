@@ -2,7 +2,7 @@ import os, sys, json
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from .util import optimize_tools, quat_tools, plot_tools
+from .util import quat_tools, plot_tools
 from .lpvds.src.lpvds_class import lpvds_class
 from .quaternion_ds.src.quat_class import quat_class
 
