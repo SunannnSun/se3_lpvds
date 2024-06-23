@@ -74,8 +74,7 @@ class se3_class:
 
         # define output path
         file_path           = os.path.dirname(os.path.realpath(__file__))  
-        self.output_path    = os.path.join(os.path.dirname(file_path), 'output_ori.json')
-
+        self.output_path    = os.path.dirname(file_path)
 
         # init pos and ori lpvds class
         self.pos_ds = lpvds_class(p_in, p_out, p_att)
@@ -98,15 +97,15 @@ class se3_class:
 
 
     def _logOut(self):
-        # self.pos_ds.log
-        pass
+        self.ori_ds._logOut(self.output_path)
+        self.pos_ds._logOut(self.output_path)
 
 
 
     def begin(self):
         self._cluster()
         self._optimize()
-        # self._logOut()
+        self._logOut()
 
 
 
@@ -137,7 +136,6 @@ class se3_class:
             gamma_pos_list.append(gamma_pos[:, 0])
             gamma_ori_list.append(gamma_ori[:, 0])
 
-
             v_test.append(v)
             w_test.append(w)
 
@@ -154,30 +152,10 @@ class se3_class:
 
         gamma_pos = self.pos_ds.damm.logProb(p_in)   # gamma value 
 
-
-
-        p_next                   = self.pos_ds._step(p_in, dt)
+        p_next                   = self.pos_ds._step(p_in, step_size)
         q_next, gamma_ori, omega = self.ori_ds._step(q_in, dt, step_size)
 
-
         return p_next, q_next, gamma_pos, gamma_ori, p_out, omega
-    
 
-
-    def _rectify(self, p_in, q_in):
-        
-        """
-        Rectify q_init if it lies on the unmodeled half of the quaternion space
-        """
-        dual_gmm    = self.dual_gmm
-        gamma_dual  = dual_gmm.logProb(p_in, q_in).T
-
-        index_of_largest = np.argmax(gamma_dual)
-
-        if index_of_largest <= (dual_gmm.K/2 - 1):
-            return q_in
-        else:
-            return R.from_quat(-q_in.as_quat())
-        
     
 
