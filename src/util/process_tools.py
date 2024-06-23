@@ -69,26 +69,12 @@ def _shift_ori(q_list):
 
 
 
-def _smooth_pos(p_in:list):
-    """
-    Smoothen the orientation trajectory using Savgol filter or SLERP interpolation
-
-    Note:
-    ----
-        The value of k are parameters that can be tuned in both methods
-    """
-    k = 80 
-    L = len(p_in)
-
+def _smooth_pos(p_in:list, k=80):
+    """ k is window length """
     p_smooth = []
-    for l in range(L):
-            p_l = p_in[l]
-
-            p_l_smooth = savgol_filter(p_l, window_length=k, polyorder=2, axis=0, mode="nearest")
-
-            p_smooth.append(p_l_smooth)
+    for l in range(len(p_in)):
+            p_smooth.append(savgol_filter(p_in[l], window_length=k, polyorder=2, axis=0, mode="nearest"))
     
-
     return p_smooth
 
 
@@ -123,7 +109,7 @@ def _smooth_ori(q_list, q_att, opt):
     
     
         elif opt == "slerp":
-            k = 40
+            k = 80
 
             t_list = [0.1*i for i in range(len(q_l))]
             

@@ -205,3 +205,76 @@ def plot_gmm_pos(p_in, gmm):
 
 
 
+def plot_p_out(p_in, p_out, pos_obj):
+    """compare estimated p_out given p_in with groud truth"""
+
+
+    p_out_est     = np.zeros((p_out.shape)) # (M, N)
+
+    gamma = pos_obj.damm.logProb(p_in)
+
+    for k in range(pos_obj.K):
+        p_out_est  +=  (np.tile(gamma[k, :], (3, 1)) * (pos_obj.A[k] @ (p_in - pos_obj.x_att.reshape(1, -1)).T)).T
+
+
+    M, N = p_out.shape
+
+    fig, axs = plt.subplots(3, 1, figsize=(12, 8))
+
+    label = pos_obj.assignment_arr
+
+    colors = ["r", "g", "b", "k", 'c', 'm', 'y', 'crimson', 'lime'] + [
+    "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)]) for i in range(200)]
+
+    color_mapping = np.take(colors, label)
+
+    label_list =["v_x", "v_y", "v_z"]
+    for k in range(3):
+        axs[k].scatter(np.arange(M), p_out[:, k], s=5, color=color_mapping, label=label_list[k])
+        axs[k].scatter(np.arange(M), p_out_est[:, k], s=5, color=color_mapping, alpha=0.2)
+
+
+
+
+def plot_q_out(q_in, q_out, ori_obj):
+    """compare estimated p_out given p_in with groud truth"""
+
+    q_out = list_to_arr(q_out)
+
+    q_out_est     = np.zeros((q_out.shape)) # (M, N)
+
+    gamma = ori_obj.gmm.logProb(q_in)
+
+    q_diff  = riem_log(ori_obj.q_att, q_in)
+    
+    q_out_att     = np.zeros((q_out.shape)) # (M, N)
+    for k in range(ori_obj.K):
+        q_out_att  +=  (np.tile(gamma[k, :], (4, 1)) * (ori_obj.A_ori[k] @ q_diff.T)).T
+
+
+    for i in range(q_out_est.shape[0]):
+        q_out_body = parallel_transport(ori_obj.q_att, q_in[i], q_out_att[i, :].T)
+        q_out_q    = riem_exp(q_in[i], q_out_body) 
+        # q_out_i      = R.from_quat(q_out_q.reshape(4,))
+        q_out_est[i, :] = q_out_q
+
+
+
+
+    M, N = q_out_est.shape
+
+    fig, axs = plt.subplots(4, 1, figsize=(12, 8))
+
+    label = ori_obj.gmm.assignment_arr
+
+    colors = ["r", "g", "b", "k", 'c', 'm', 'y', 'crimson', 'lime'] + [
+    "#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)]) for i in range(200)]
+
+    color_mapping = np.take(colors, label)
+
+    label_list =["q_x", "q_y", "q_z", "q_w"]
+    for k in range(4):
+        axs[k].scatter(np.arange(M), q_out[:, k], s=5, color=color_mapping, label=label_list[k])
+        axs[k].scatter(np.arange(M), q_out_est[:, k], s=5, color=color_mapping, alpha=0.2)
+
+    
