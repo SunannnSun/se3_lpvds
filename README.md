@@ -14,3 +14,5 @@ Note:
 
 Their shapes and elements change over the "processing". Refer to ``se3_class.py`` for the *FINAL* type and size 
 
+
+enable adjust_cov given a single trajectory; disable when the data provided is sufficiently large
