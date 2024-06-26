@@ -139,14 +139,19 @@ def load_demo_dataset():
 
 def load_npy():
 
-    traj = np.load("traj1.npy")
+    traj = np.load("dataset/UMI/traj1.npy")
 
     q_raw = [R.from_matrix(traj[i, :3, :3]) for i in range(traj.shape[0])]
 
     p_raw = [traj[i, :3, -1] for i in range(traj.shape[0])]
 
+    """provide dt"""
+    # dt = 0.07
 
-    dt = 0.07
+    """or provide T"""
+    T = 5
+    dt = T/traj.shape[0]
+
     t_raw = [dt*i for i in range(traj.shape[0])]
 
     return [np.vstack(p_raw)], [q_raw], [t_raw], dt

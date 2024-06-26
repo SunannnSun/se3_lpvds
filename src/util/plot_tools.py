@@ -32,7 +32,8 @@ def plot_vel(v_test, w_test):
     for k in range(3):
         axs[k].scatter(np.arange(M), v_test[:, k], s=5, color=colors[k])
         # axs[k].set_ylim([0, 1])
-
+    
+    axs[0].set_title("Linear Velocity")
 
     w_test = np.vstack(w_test)
     M, N = w_test.shape
@@ -44,6 +45,7 @@ def plot_vel(v_test, w_test):
     for k in range(3):
         axs[k].scatter(np.arange(M), w_test[:, k], s=5, color=colors[k])
         # axs[k].set_ylim([0, 1])
+    axs[0].set_title("Angular Velocity")
 
 
 

@@ -2,9 +2,10 @@ import os, sys, json
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from .util import optimize_tools, plot_tools
-from .util.quat_tools import *
+from .util import optimize_tools, quat_tools
 from .gmm_class import gmm_class
+
+
 
 
 def write_json(data, path):
@@ -12,11 +13,13 @@ def write_json(data, path):
         json.dump(data, json_file, indent=4)
 
 
-def compute_ang_vel(q_k, q_kp1, dt=0.01):
+
+
+def compute_ang_vel(q_k, q_kp1, dt):
     """ Compute angular velocity """
 
-    dq = q_k.inv() * q_kp1    # from q_k to q_kp1 in body frame
-    # dq = q_kp1 * q_k.inv()    # from q_k to q_kp1 in fixed frame
+    # dq = q_k.inv() * q_kp1    # from q_k to q_kp1 in body frame
+    dq = q_kp1 * q_k.inv()    # from q_k to q_kp1 in fixed frame
 
     dq = dq.as_rotvec() 
     w  = dq / dt
@@ -27,10 +30,8 @@ def compute_ang_vel(q_k, q_kp1, dt=0.01):
 
 
 class se3_class:
-    def __init__(self, p_in:np.ndarray, q_in:list, p_out:np.ndarray, q_out:list, p_att:np.ndarray, q_att:R, K_init:int) -> None:
+    def __init__(self, p_in:np.ndarray, q_in:list, p_out:np.ndarray, q_out:list, p_att:np.ndarray, q_att:R, dt:float, K_init:int) -> None:
         """
-        Initialize an se3_class object
-
         Parameters:
         ----------
             p_in (np.ndarray):      [M, N] NumPy array of POSITION INPUT
@@ -45,11 +46,13 @@ class se3_class:
 
             q_att (Rotation):       Single Rotation object for ORIENTATION ATTRACTOR
             
-            K_init:                 Number of Gaussian Components
+            dt (float):             TIME DIFFERENCE in differentiating ORIENTATION
 
-            M: Observation size
+            K_init (int):           Number of Gaussian Components
 
-            N: Observation dimenstion (assuming 3D)
+            M:                      Observation size
+
+            N:                      Observation dimenstion (assuming 3D)
         """
 
         # store parameters
@@ -62,6 +65,7 @@ class se3_class:
         self.p_att = p_att
         self.q_att = q_att
 
+        self.dt = dt
         self.K_init = K_init
         self.M = len(q_in)
 
@@ -83,30 +87,38 @@ class se3_class:
         self.gamma    = gmm.fit()  # K by M
         self.K        = gmm.K
         self.gmm      = gmm
-        self.dual_gmm = gmm._dual_gmm()
 
 
 
     def _optimize(self):
-        self.A_pos = optimize_tools.optimize_pos(self.p_in, self.p_out, self.p_att, self.gamma)
-        self.A_ori = optimize_tools.optimize_ori(self.q_in, self.q_out, self.q_att, self.gamma)
+        A_pos = optimize_tools.optimize_pos(self.p_in, self.p_out, self.p_att, self.gamma)
+        A_ori = optimize_tools.optimize_ori(self.q_in, self.q_out, self.q_att, self.gamma)
+
+        q_in_dual   = [R.from_quat(-q.as_quat()) for q in self.q_in]
+        q_out_dual  = [R.from_quat(-q.as_quat()) for q in self.q_out]
+        q_att_dual =  R.from_quat(-self.q_att.as_quat())
+        A_ori_dual = optimize_tools.optimize_ori(q_in_dual, q_out_dual, q_att_dual, self.gamma)
+
+        self.A_pos = np.concatenate((A_pos, A_pos), axis=0)
+        self.A_ori = np.concatenate((A_ori, A_ori_dual), axis=0)
 
 
 
     def begin(self):
         self._cluster()
         self._optimize()
-        self._logOut()
+        # self._logOut()
 
 
-    def sim(self, p_init, q_init, dt, step_size):
+
+    def sim(self, p_init, q_init, step_size):
         p_test = [p_init.reshape(1, -1)]
         q_test = [q_init]
+
         gamma_test = []
 
         v_test = []
         w_test = []
-
 
         i = 0
         while np.linalg.norm((q_test[-1] * self.q_att.inv()).as_rotvec()) >= self.tol or np.linalg.norm((p_test[-1] - self.p_att)) >= self.tol:
@@ -117,12 +129,11 @@ class se3_class:
             p_in  = p_test[i]
             q_in  = q_test[i]
 
-            p_next, q_next, gamma, v, w = self._step(p_in, q_in, dt, step_size)
+            p_next, q_next, gamma, v, w = self._step(p_in, q_in, step_size)
 
             p_test.append(p_next)        
             q_test.append(q_next)        
             gamma_test.append(gamma[:, 0])
-
             v_test.append(v)
             w_test.append(w)
 
@@ -132,62 +143,61 @@ class se3_class:
         
 
 
-    def _step(self, p_in, q_in, dt, step_size):
+    def _step(self, p_in, q_in, step_size):
         """ Integrate forward by one time step """
-        q_in = self._rectify(p_in, q_in)
-
 
         # read parameters
-        A_pos = self.A_pos
-        A_ori = self.A_ori
+        A_pos = self.A_pos  # (2K, N, N)
+        A_ori = self.A_ori  # (2K, N, N)
 
         p_att = self.p_att.reshape(1, -1)
         q_att = self.q_att
 
         K     = self.K
         gmm   = self.gmm
+        
+
+        # compute gamma
+        gamma = gmm.logProb(p_in, q_in)   # gamma value 
+
 
         # compute output
+        v     = np.zeros((3, 1))
         p_diff  = p_in - p_att
-        q_diff  = riem_log(q_att, q_in)
         
-        p_out     = np.zeros((3, 1))
         q_out_att = np.zeros((4, 1))
-
-        gamma = gmm.logProb(p_in, q_in)   # gamma value 
+        q_diff  = quat_tools.riem_log(q_att, q_in)
         for k in range(K):
-            p_out     += gamma[k, 0] * A_pos[k] @ p_diff.T
+            v         += gamma[k, 0] * A_pos[k] @ p_diff.T
             q_out_att += gamma[k, 0] * A_ori[k] @ q_diff.T
-
-        p_next = p_in + p_out.T * step_size
-
-        q_out_body = parallel_transport(q_att, q_in, q_out_att.T)
-        q_out_q    = riem_exp(q_in, q_out_body) 
+        q_out_body = quat_tools.parallel_transport(q_att, q_in, q_out_att.T)
+        q_out_q    = quat_tools.riem_exp(q_in, q_out_body) 
         q_out      = R.from_quat(q_out_q.reshape(4,))
-        w_out      = compute_ang_vel(q_in, q_out, dt)   #angular velocity
-        q_next     = q_in * R.from_rotvec(w_out * step_size)   #compose in body frame
+        w          = compute_ang_vel(q_in, q_out, self.dt)  
 
 
-        return p_next, q_next, gamma, p_out, w_out
+        # dual cover
+        q_att_dual = R.from_quat(-q_att.as_quat())
+        q_out_att_dual = np.zeros((4, 1))
+        q_diff_dual  = quat_tools.riem_log(q_att_dual, q_in)
+        for k in range(K):
+            v              += gamma[self.K+k, 0] * A_pos[self.K+k] @ p_diff.T
+            q_out_att_dual += gamma[self.K+k, 0] * A_ori[self.K+k] @ q_diff_dual.T
+        q_out_body_dual = quat_tools.parallel_transport(q_att_dual, q_in, q_out_att_dual.T)
+        q_out_q_dual    = quat_tools.riem_exp(q_in, q_out_body_dual) 
+        q_out_dual      = R.from_quat(q_out_q_dual.reshape(4,))
+        w               += compute_ang_vel(q_in, q_out_dual, self.dt)  
+
+
+        # propagate forward
+        p_next     = p_in + v.T * step_size
+        q_next     = R.from_rotvec(w * step_size) * q_in  #compose in world frame
+        # q_next     = q_in * R.from_rotvec(w * step_size)   #compose in body frame
+
+
+        return p_next, q_next, gamma, v, w
     
 
-
-    def _rectify(self, p_in, q_in):
-        
-        """
-        Rectify q_init if it lies on the unmodeled half of the quaternion space
-        """
-        dual_gmm    = self.dual_gmm
-        gamma_dual  = dual_gmm.logProb(p_in, q_in).T
-
-        index_of_largest = np.argmax(gamma_dual)
-
-        if index_of_largest <= (dual_gmm.K/2 - 1):
-            return q_in
-        else:
-            return R.from_quat(-q_in.as_quat())
-        
-    
 
 
     def _logOut(self):

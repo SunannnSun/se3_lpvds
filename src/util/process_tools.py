@@ -5,9 +5,8 @@ from scipy.spatial.transform import Slerp
 from scipy.spatial.transform import Rotation as R
 from scipy.signal import savgol_filter
 
-from . import plot_tools, optimize_tools, quat_tools
+from . import quat_tools
 from .quat_tools import *
-from .plot_tools import *
 
 
 
@@ -15,8 +14,8 @@ from .plot_tools import *
 def _compute_ang_vel(q_i, q_ip1, dt=0.01):
     """  Compute angular velocity """
 
-    dq = q_i.inv() * q_ip1    # from q_i to q_ip1 in body frame
-    # dq = q_kp1 * q_k.inv()    # from q_i to q_ip1 in fixed frame
+    # dq = q_i.inv() * q_ip1    # from q_i to q_ip1 in body frame
+    dq = q_ip1 * q_i.inv()    # from q_i to q_ip1 in fixed frame
 
     dq = dq.as_rotvec() 
     w  = dq / dt
@@ -50,8 +49,8 @@ def _shift_ori(q_list):
     ---- 
         Scipy methods, e.g. "R.mean()", "R.inv()" and "R.__mul__()" will OFTEN flip the SIGNS of the computed quaternion
         
-        Do NOT output "q_att_mean" as the ATTRACTOR which could be SIGN-inconsistent with the rest of quaternions
-        INSTEAD, always output the LAST of the shifted quaternions
+        INSTEADDo NOT output "q_att_mean" as the ATTRACTOR which could be SIGN-inconsistent with the rest of quaternions
+        , always output the LAST of the shifted quaternions
     """
 
     L = len(q_list)
@@ -66,6 +65,18 @@ def _shift_ori(q_list):
         q_shifted.append([q_diff * q for q in q_list[l]])
 
     return q_shifted, q_shifted[-1][-1]
+
+
+
+
+def _smooth_pos(p_in:list, k=80):
+    """ k is window length """
+    p_smooth = []
+    for l in range(len(p_in)):
+            p_smooth.append(savgol_filter(p_in[l], window_length=k, polyorder=2, axis=0, mode="nearest"))
+    
+    return p_smooth
+
 
 
 
@@ -86,7 +97,7 @@ def _smooth_ori(q_list, q_att, opt):
         q_l    = q_list[l]
 
         if opt == "savgol":
-            k = 80
+            k =  80
 
             q_l_att  = quat_tools.riem_log(q_att, q_l)
 
@@ -98,7 +109,7 @@ def _smooth_ori(q_list, q_att, opt):
     
     
         elif opt == "slerp":
-            k = 40
+            k = 80
 
             t_list = [0.1*i for i in range(len(q_l))]
             
@@ -122,7 +133,7 @@ def _smooth_ori(q_list, q_att, opt):
 def _filter(p_list, q_list, t_list):
     """   Extract a smooth velocity profile (non-zero except near the attractor)  """
 
-    min_thold = 0.1 
+    min_thold = 0.05
     pct_thold = 0.8
 
     L = len(q_list)
@@ -163,11 +174,12 @@ def pre_process(p_raw, q_raw, t_raw, opt="savgol"):
     p_in, p_att             = _shift_pos(p_raw)
     q_in, q_att             = _shift_ori(q_raw)
 
-    q_in                    = _smooth_ori(q_in, q_att, opt)
+    p_in                    = _smooth_pos(p_in)
+    # q_in                    = _smooth_ori(q_in, q_att, opt) # needed or not?
 
-    p_in, q_in, t_in        = _filter(p_in, q_in, t_raw)
+    # p_in, q_in, t_in        = _filter(p_in, q_in, t_raw)  # needed or not?
 
-    return p_in, q_in, t_in
+    return p_in, q_in, t_raw
 
 
 
@@ -247,6 +259,4 @@ def rollout_list(p_in, q_in, p_out, q_out):
             
 
     return p_in_rollout, q_in_rollout, p_out_rollout, q_out_rollout
-
-
 

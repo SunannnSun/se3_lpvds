@@ -62,7 +62,11 @@ def optimize_ori(q_in, q_out, q_att, postProb):
     for k in range(K):
         A_vars.append(cp.Variable((N, N), symmetric=False))
 
-
+        constraints += [A_vars[k]<< np.zeros((4, 4))]
+        
+        # constraints += [A_vars[k].T + A_vars[k] << np.zeros((4, 4))]
+        # constraints += [cp.norm(A_vars[k], 'fro') <= max_norm]
+        
     for k in range(K):
         q_pred_k = A_vars[k] @ q_in_att.T
         if k == 0:
