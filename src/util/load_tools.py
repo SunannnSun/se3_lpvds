@@ -96,9 +96,9 @@ def load_clfd_dataset(task_id=1, num_traj=1, sub_sample=3):
     dir_path            = os.path.dirname(file_path)
     data_path           = os.path.dirname(dir_path)
 
-    seq_file    = os.path.join(data_path, "dataset", "pos_ori", "robottasks_pos_ori_sequence_4.txt")
+    seq_file    = os.path.join(data_path, "dataset", "clfd", "robottasks_pos_ori_sequence_4.txt")
     filenames   = _get_sequence(seq_file)
-    datafile    = os.path.join(data_path, "dataset", "pos_ori", filenames[task_id])
+    datafile    = os.path.join(data_path, "dataset", "clfd", filenames[task_id])
     
     data        = np.load(datafile)[:, ::sub_sample, :]
 
@@ -128,9 +128,7 @@ def load_clfd_dataset(task_id=1, num_traj=1, sub_sample=3):
 
 def load_demo_dataset():
     """
-    Load demo data recorded from demonstration
-
-
+    Load demo data recorded from kniesthetic teaching
     """
 
     input_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..", "..", "dataset", "demo", "all.mat")
@@ -140,7 +138,7 @@ def load_demo_dataset():
 
 
 
-def load_npy():
+def load_UMI():
 
     traj = np.load("dataset/UMI/traj1.npy")
 

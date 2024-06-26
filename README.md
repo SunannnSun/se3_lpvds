@@ -1,18 +1,25 @@
-If not using the built-in ``load_tools`` and ``process_tools``, one can directly import the ``se3_class`` and make sure the inputs match the types specified in ``se3_class.py``
+# SE(3) Linear Parameter Varying Dynamical Systems for Globally Asymptotically Stable End-Effector Control
+
+Implementation of SE(3) Linear Parameter Varying Dynamical Systems (LPVDS) for pose control. The ```main``` branch contains the coupled learning of pose trajectory, whereas the decoupled variant of this framework is maintained in the ```main-decoupled``` branch, and please refer to its README.md for usage.
 
 
-
-Note: 
-
-``p_in`` is position input
-
-``q_in`` is orientation input (scipy rotation object)
-
-``p_out`` is velocity 
-
-``q_out`` is next expected orientation (scipy rotation object)
-
-Their shapes and elements change over the "processing". Refer to ``se3_class.py`` for the *FINAL* type and size 
+## Dataset
+The available dataset contains the following:
+1. clfd_data: collection of pose trajectory from the [clfd framework](https://github.com/sayantanauddy/clfd)
+2. kinesthetic_demo: pose trajectory collected from kinesthetic teaching
+3. UMI_demo: single pose trajectory collected from the UMI gripper real-time data collection
 
 
-enable adjust_cov given a single trajectory; disable when the data provided is sufficiently large
+## Usage
+Create a virtual envrionemnt and install the required packages:
+```
+virtualenv -p /path/to/python3.8 venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Begin the learning process and evaluate the result:
+```
+python main.py
+```
+

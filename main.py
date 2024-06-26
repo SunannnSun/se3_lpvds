@@ -7,7 +7,7 @@ from src.util import plot_tools, load_tools, process_tools
 
 
 '''Load data'''
-p_raw, q_raw, t_raw, dt = load_tools.load_npy()
+p_raw, q_raw, t_raw, dt = load_tools.load_UMI()
 # p_raw, q_raw, t_raw, dt = load_tools.load_clfd_dataset(task_id=0, num_traj=9, sub_sample=1)
 # p_raw, q_raw, t_raw, dt = load_tools.load_demo_dataset()
 
