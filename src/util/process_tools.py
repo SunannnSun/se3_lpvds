@@ -175,11 +175,11 @@ def pre_process(p_raw, q_raw, t_raw, opt="savgol"):
     q_in, q_att             = _shift_ori(q_raw)
 
     p_in                    = _smooth_pos(p_in)
-    q_in                    = _smooth_ori(q_in, q_att, opt)
+    # q_in                    = _smooth_ori(q_in, q_att, opt) # needed or not?
 
-    p_in, q_in, t_in        = _filter(p_in, q_in, t_raw)
+    # p_in, q_in, t_in        = _filter(p_in, q_in, t_raw)  # needed or not?
 
-    return p_in, q_in, t_in
+    return p_in, q_in, t_raw
 
 
 

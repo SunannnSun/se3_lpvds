@@ -8,30 +8,10 @@ from .quaternion_ds.src.quat_class import quat_class
 
 
 
-def write_json(data, path):
-    with open(path, "w") as json_file:
-        json.dump(data, json_file, indent=4)
-
-
-
-def compute_ang_vel(q_k, q_kp1, dt=0.01):
-    """ Compute angular velocity """
-
-    dq = q_k.inv() * q_kp1    # from q_k to q_kp1 in body frame
-    # dq = q_kp1 * q_k.inv()    # from q_k to q_kp1 in fixed frame
-
-    dq = dq.as_rotvec() 
-    w  = dq / dt
-    
-    return w
-
-
 
 class se3_class:
-    def __init__(self, p_in:np.ndarray, q_in:list, p_out:np.ndarray, q_out:list, p_att:np.ndarray, q_att:R, K_init:int) -> None:
+    def __init__(self, p_in:np.ndarray, q_in:list, p_out:np.ndarray, q_out:list, p_att:np.ndarray, q_att:R, dt:float, K_init:int) -> None:
         """
-        Initialize an se3_class object
-
         Parameters:
         ----------
             p_in (np.ndarray):      [M, N] NumPy array of POSITION INPUT
@@ -46,11 +26,13 @@ class se3_class:
 
             q_att (Rotation):       Single Rotation object for ORIENTATION ATTRACTOR
             
-            K_init:                 Number of Gaussian Components
+            dt (float):             TIME DIFFERENCE in differentiating ORIENTATION
 
-            M: Observation size
+            K_init (int):           Number of Gaussian Components
 
-            N: Observation dimenstion (assuming 3D)
+            M:                      Observation size
+
+            N:                      Observation dimenstion (assuming 3D)
         """
 
         # store parameters
@@ -76,9 +58,10 @@ class se3_class:
         file_path           = os.path.dirname(os.path.realpath(__file__))  
         self.output_path    = os.path.dirname(file_path)
 
-        # init pos and ori lpvds class
+
+        # initialize lpvds class
         self.pos_ds = lpvds_class(p_in, p_out, p_att)
-        self.ori_ds = quat_class(q_in, q_out, q_att, K_init=self.K_init)
+        self.ori_ds = quat_class(q_in, q_out, q_att, dt, K_init)
 
 
 
@@ -92,8 +75,6 @@ class se3_class:
         self.pos_ds._optimize()
         self.ori_ds._optimize()
 
-        self.A_pos = self.pos_ds.A
-        self.A_ori = self.ori_ds.A_ori
 
 
     def _logOut(self):
@@ -109,7 +90,7 @@ class se3_class:
 
 
 
-    def sim(self, p_init, q_init, dt, step_size):
+    def sim(self, p_init, q_init, step_size):
         p_test = [p_init.reshape(1, -1)]
         q_test = [q_init]
 
@@ -118,7 +99,6 @@ class se3_class:
 
         v_test = []
         w_test = []
-
 
         i = 0
         while np.linalg.norm((q_test[-1] * self.q_att.inv()).as_rotvec()) >= self.tol or np.linalg.norm((p_test[-1] - self.p_att)) >= self.tol:
@@ -129,33 +109,28 @@ class se3_class:
             p_in  = p_test[i]
             q_in  = q_test[i]
 
-            p_next, q_next, gamma_pos, gamma_ori, v, w = self._step(p_in, q_in, dt, step_size)
+            p_next, q_next, gamma_pos, gamma_ori, v, w = self._step(p_in, q_in, step_size)
 
             p_test.append(p_next)        
             q_test.append(q_next)        
             gamma_pos_list.append(gamma_pos[:, 0])
             gamma_ori_list.append(gamma_ori[:, 0])
-
             v_test.append(v)
             w_test.append(w)
 
             i += 1
 
-        return np.vstack(p_test), q_test, np.array(gamma_pos_list),  np.array(gamma_ori_list), v_test, w_test
+        return np.vstack(p_test), q_test, np.array(gamma_pos_list), np.array(gamma_ori_list), v_test, w_test
         
 
 
-    def _step(self, p_in, q_in, dt, step_size):
+    def _step(self, p_in, q_in, step_size):
         """ Integrate forward by one time step """
 
-        p_out     = np.zeros((3, 1)) # missing
+        p_next, gamma_pos, v = self.pos_ds._step(p_in, step_size)
+        q_next, gamma_ori, w = self.ori_ds._step(q_in, step_size)
 
-        gamma_pos = self.pos_ds.damm.logProb(p_in)   # gamma value 
-
-        p_next                   = self.pos_ds._step(p_in, step_size)
-        q_next, gamma_ori, omega = self.ori_ds._step(q_in, dt, step_size)
-
-        return p_next, q_next, gamma_pos, gamma_ori, p_out, omega
+        return p_next, q_next, gamma_pos, gamma_ori, v, w
 
     
 
