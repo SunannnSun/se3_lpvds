@@ -163,7 +163,7 @@ class gmm_class:
             p_diff = p_k - p_k_mean
             pq_diff = np.hstack((p_diff, q_diff))
 
-            Prior[k]  = len(q_k)/self.M
+            Prior[k]  = len(q_k)/ (2 * self.M)
             Mu[k]     = (p_k_mean, q_k_mean)
             Sigma_k  = pq_diff.T @ pq_diff / (len(q_k)-1)  + 10E-6 * np.eye(self.N)
             Sigma_k  = adjust_cov(Sigma_k)

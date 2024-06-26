@@ -68,7 +68,7 @@ class se3_class:
         self.dt = dt
         self.K_init = K_init
         self.M = len(q_in)
-
+        self.N = 7
 
         # simulation parameters
         self.tol = 10E-3
@@ -77,7 +77,7 @@ class se3_class:
 
         # define output path
         file_path           = os.path.dirname(os.path.realpath(__file__))  
-        self.output_path    = os.path.join(os.path.dirname(file_path), 'output_ori.json')
+        self.output_path    = os.path.join(os.path.dirname(file_path), 'output.json')
 
 
 
@@ -107,7 +107,7 @@ class se3_class:
     def begin(self):
         self._cluster()
         self._optimize()
-        # self._logOut()
+        self._logOut()
 
 
 
@@ -200,22 +200,22 @@ class se3_class:
 
 
 
-    def _logOut(self):
+    def _logOut(self, *args):
 
         Prior = self.gmm.Prior
         Mu    = self.gmm.Mu
         Mu_rollout = [np.hstack((p_mean, q_mean.as_quat())) for (p_mean, q_mean) in Mu]
         Sigma = self.gmm.Sigma
 
-        Mu_arr      = np.zeros((self.K, 7)) 
-        Sigma_arr   = np.zeros((self.K, 7, 7), dtype=np.float32)
+        Mu_arr      = np.zeros((2 * self.K, self.N)) 
+        Sigma_arr   = np.zeros((2 * self.K, self.N, self.N), dtype=np.float32)
 
-        for k in range(self.K):
+        for k in range(2 * self.K):
             Mu_arr[k, :] = Mu_rollout[k]
             Sigma_arr[k, :, :] = Sigma[k]
 
         json_output = {
-            "name": "SE3-LPVDS result",
+            "name": "SE3-LPVDS",
 
             "K": self.K,
             "M": 7,
@@ -227,9 +227,11 @@ class se3_class:
             'A_ori': self.A_ori.ravel().tolist(),
             'att_pos': self.p_att.ravel().tolist(),
             'att_ori': self.q_att.as_quat().ravel().tolist(),
-            'q_init': self.q_in[0].as_quat().ravel().tolist(),
+            "dt": self.dt,
             "gripper_open": 0
         }
 
-        js_path =  os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'output.json')
-        write_json(json_output, js_path)
+        if len(args) == 0:
+            write_json(json_output, self.output_path)
+        else:
+            write_json(json_output, os.path.join(args[0], '1.json'))
