@@ -4,3 +4,7 @@
 [submodule "src/quaternion_ds"]
 	path = src/quaternion_ds
 	url = https://github.com/SunannnSun/quaternion_ds.git
+[submodule "src/se3_elastic"]
+	path = src/se3_elastic
+	url = https://github.com/SunannnSun/se3_elastic
+	branch = main-decoupled
