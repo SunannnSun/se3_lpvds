@@ -1,0 +1,3 @@
+[submodule "src/se3_elastic"]
+	path = src/se3_elastic
+	url = https://github.com/SunannnSun/se3_elastic
