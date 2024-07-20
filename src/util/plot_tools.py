@@ -83,7 +83,7 @@ def plot_result(p_train, p_test, q_test):
 
     colors = ("#FF6666", "#005533", "#1199EE")  # Colorblind-safe RGB
     x_min, x_max = ax.get_xlim()
-    scale = (x_max - x_min)/4
+    scale = (x_max - x_min)
     
     for i in np.linspace(0, len(q_test), num=30, endpoint=False, dtype=int):
 

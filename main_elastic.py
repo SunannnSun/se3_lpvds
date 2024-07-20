@@ -24,12 +24,6 @@ p_init, q_init, p_att, q_att = process_tools.extract_state(p_in, q_in)
 p_in, q_in, p_out, q_out     = process_tools.rollout_list(p_in, q_in, p_out, q_out)
 
 
-p_in = p_in[:100]
-p_out = p_out[:100]
-q_in = q_in[:100]
-q_out = q_out[:100]
-q_att = q_out[-1]
-
 
 '''Run lpvds'''
 se3_obj = se3_class(p_in, q_in, p_out, q_out, p_att, q_att, dt, K_init=4)
@@ -43,8 +37,28 @@ traj_data, old_gmm_struct, gmm_struct, old_anchor, new_anchor = elastic_obj.star
 
 
 
-elastic_obj = elastic_ori_class(se3_obj.ori_ds.gmm.Prior, se3_obj.ori_ds.gmm.Mu, se3_obj.ori_ds.gmm.Sigma, q_att, q_in, q_out)
-traj_data_ori, old_gmm_struct_ori, gmm_struct_ori, old_anchor_ori, new_anchor_ori = elastic_obj.start_adapting()
+# K_pos= gmm_struct['Prior'].shape[0]
+# for k in range(K_pos):
+#     prior_k = gmm_struct['Prior'][k]
+#     mu_k = gmm_struct['Mu'][:, k]
+#     print(prior_k)
+#     print(mu_k)
+
+#     prior_k = old_gmm_struct['Prior'][k]
+#     mu_k = old_gmm_struct['Mu'][:, k]
+#     print(prior_k)
+#     print(mu_k)
+    
+
+# # Sigma = np.zeros((K_ori, 4, 4))
+# for k in range(K_pos):
+#     print("new Sigma", gmm_struct['Sigma'][k, :, :])
+#     print("old Sigma", old_gmm_struct['Sigma'][k, :, :])
+
+
+
+elastic_ori_obj = elastic_ori_class(se3_obj.ori_ds.gmm.Prior, se3_obj.ori_ds.gmm.Mu, se3_obj.ori_ds.gmm.Sigma, q_att, q_in, q_out)
+traj_data_ori, old_gmm_struct_ori, gmm_struct_ori, old_anchor_ori, new_anchor_ori = elastic_ori_obj.start_adapting()
 
 
 
@@ -52,18 +66,99 @@ M = traj_data_ori[0].shape[1]
 new_ori = [R.identity()] * M
 for i in range(M):
     ori_i_red = traj_data_ori[0][:3, i]
-    ori_i = elastic_obj.normal_basis @ ori_i_red + elastic_obj.normal_vec
+    ori_i = elastic_ori_obj.normal_basis @ ori_i_red + elastic_ori_obj.normal_vec
     ori_i_quat = quat_tools.riem_exp(q_att, ori_i.reshape(1, -1))
     new_ori[i] = R.from_quat(ori_i_quat[0])
+
+
+new_ori_out = [R.identity()] * M
+for i in range(M-1):
+    new_ori_out[i] = new_ori[i+1]
+new_ori_out[-1] = new_ori[-1]
+
+
+
+K_ori= gmm_struct_ori['Prior'].shape[0]
+Mu = [R.identity()] * K_ori
+for k in range(K_ori):
+    # prior_k = gmm_struct_ori['Prior'][k]
+    # print(prior_k)
+
+    # prior_k = old_gmm_struct_ori['Prior'][k]
+    # print(prior_k)
+
+    mu_k = gmm_struct_ori['Mu'][:, k]
+    mu_k = elastic_ori_obj.normal_basis @ mu_k + elastic_ori_obj.normal_vec
+    mu_k = quat_tools.riem_exp(q_att, mu_k.reshape(1, -1))
+    Mu[k] = R.from_quat(mu_k[0])
+    # print(Mu[k].as_quat())
+
+
+
+    # mu_k = old_gmm_struct_ori['Mu'][:, k]
+    # mu_k = elastic_ori_obj.normal_basis @ mu_k + elastic_ori_obj.normal_vec
+    # mu_k = quat_tools.riem_exp(q_att, mu_k.reshape(1, -1))
+    
+    # Mu[k] = se3_obj.ori_ds.gmm.Mu[k]
+    # print(se3_obj.ori_ds.gmm.Mu[k].as_quat())
+
+
+Sigma = np.zeros((K_ori, 4, 4))
+# for k in reversed(range(K_ori)):
+for k in range(K_ori):
+    Sigma[k, :, :] = elastic_ori_obj.normal_basis @ gmm_struct_ori['Sigma'][k, :, :] @ elastic_ori_obj.normal_basis.T
+    # Sigma[k, :, :] = elastic_ori_obj.normal_basis @ old_gmm_struct_ori['Sigma'][k, :, :] @ elastic_ori_obj.normal_basis.T
+
+    # print(Sigma[k, :, :])
+    # print(se3_obj.ori_ds.gmm.Sigma[k])
+
+
+
+se3_obj.ori_ds.elasticUpdate(new_ori, new_ori_out, gmm_struct_ori['Prior'], Mu, Sigma)
+
 
 
 # a = elastic_obj.normal_basis @ new_anchor_ori[2, :]+ elastic_obj.normal_vec
 # print(a)
 
-plot_tools.ori_debug(elastic_obj.data[:, :3], traj_data_ori[0][:3, :].T, old_anchor_ori, new_anchor_ori, old_gmm_struct_ori, gmm_struct_ori)
+# plot_tools.ori_debug(elastic_ori_obj.data[:, :3], traj_data_ori[0][:3, :].T, old_anchor_ori, new_anchor_ori, old_gmm_struct_ori, gmm_struct_ori)
 
 plot_tools.demo_vs_adjust(p_in, traj_data[0][:3, :].T, old_anchor, new_anchor, q_in, new_ori)
-# plot_tools.demo_vs_adjust_gmm(p_in, traj_data[0][:3, :].T, se3_obj.gmm, old_gmm_struct, new_ori, gmm_struct)
+plot_tools.demo_vs_adjust_gmm(p_in, traj_data[0][:3, :].T, se3_obj.pos_ds.damm, old_gmm_struct, new_ori, gmm_struct)
+
+
+
+'''Evaluate results'''
+p_init = p_init[0]
+q_init = R.from_quat(-q_init[0].as_quat())
+p_test, q_test, gamma_pos, gamma_ori, v_test, w_test = se3_obj.sim(p_init, q_init, step_size=0.05)
+
+
+from src.util import plot_tools, load_tools, process_tools
+
+'''Plot results'''
+# plot_tools.plot_p_out(p_in, p_out, se3_obj.pos_ds)
+# plot_tools.plot_q_out(q_in, q_out, se3_obj.ori_ds)
+
+# plot_tools.plot_gmm_pos(p_in, se3_obj.pos_ds.damm)
+# plot_tools.plot_gmm_ori(p_in, se3_obj.ori_ds.gmm)
+
+plot_tools.plot_result(p_in, p_test, q_test)
+
+se3_obj.pos_ds.elasticUpdate(traj_data[0], gmm_struct)
+
+
+q_init = q_init * R.from_euler('xyz', [2.5, 0.2, 2.1])
+
+
+p_test, q_test, gamma_pos, gamma_ori, v_test, w_test = se3_obj.sim(p_init, q_init, step_size=0.02)
+plot_tools.plot_result(p_in, p_test, q_test)
+
+
+# plot_tools.plot_gamma(gamma_pos, title="pos")
+# plot_tools.plot_gamma(gamma_ori, title="ori")
+
+
 
 plt.show()
 

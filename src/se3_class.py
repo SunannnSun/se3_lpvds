@@ -51,7 +51,7 @@ class se3_class:
 
         # simulation parameters
         self.tol = 10E-3
-        self.max_iter = 5000
+        self.max_iter = 50000
 
 
         # define output path
